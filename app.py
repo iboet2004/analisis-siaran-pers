@@ -7,6 +7,19 @@ import streamlit as st
 from modules.document_processor import DocumentProcessor
 from modules.keyword_extractor import KeywordExtractor
 
+import nltk
+import os
+
+# Atur variabel lingkungan NLTK_DATA jika belum diatur
+if 'NLTK_DATA' not in os.environ:
+    os.environ['NLTK_DATA'] = '/tmp/nltk_data'
+
+# Download resource punkt_tab jika belum ada
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt_tab', download_dir=os.environ['NLTK_DATA'])
+
 # Set konfigurasi halaman
 st.set_page_config(
     page_title="Analisis Siaran Pers Indonesia",
