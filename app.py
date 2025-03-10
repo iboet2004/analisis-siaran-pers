@@ -115,7 +115,7 @@ def main():
         st.write("### Kutipan")
         quotes = [quote_data['quote'] for quote_data in analysis["quotes"]]
         for quote in quotes:
-            st.markdown(f"> "{quote}"")
+            st.markdown(f"> \"{quote}\"")
     
     elif choice == "Pencarian Berita":
         if "analysis_result" not in st.session_state:
