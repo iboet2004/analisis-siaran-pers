@@ -1,54 +1,74 @@
+"""
+News Finder Module for Analisis Siaran Pers.
+Handles searching for news articles based on keywords.
+"""
+
 import requests
-import feedparser
-from typing import List, Dict, Any
+import streamlit as st
+from typing import List, Dict, Any, Optional
 
 class NewsFinder:
-    """
-    Modul pencarian berita yang menggabungkan NewsAPI, API Berita Lokal Indonesia, dan Twitter Trends API.
-    """
+    """Class to handle news search operations."""
     
     def __init__(self, api_key: str):
         self.api_key = api_key
-        self.newsapi_url = "https://newsapi.org/v2/everything"
-        self.local_news_url = "https://berita-indo-api.vercel.app/v1/"
-        self.twitter_trends_url = "https://api.trends24.in/indonesia"
+        self.base_url = "https://newsapi.org/v2/everything"
     
-    def fetch_newsapi(self, keywords: List[str], max_results: int = 5) -> List[Dict[str, Any]]:
-        """Ambil berita dari NewsAPI."""
+    def search_news(self, keywords: List[str], language: str = "id", page_size: int = 5) -> List[Dict]:
+        """
+        Search for news articles based on keywords.
+        
+        Args:
+            keywords: List of keywords to search for
+            language: Language of the articles (default is Indonesian)
+            page_size: Number of articles to return
+            
+        Returns:
+            List of news articles as dictionaries
+        """
         query = " OR ".join(keywords)
         params = {
             "q": query,
-            "language": "id",
-            "pageSize": max_results,
+            "language": language,
+            "pageSize": page_size,
             "apiKey": self.api_key
         }
-        response = requests.get(self.newsapi_url, params=params)
+        
+        response = requests.get(self.base_url, params=params)
+        
         if response.status_code == 200:
-            return response.json().get("articles", [])
+            articles = response.json().get("articles", [])
+            return articles
         else:
+            st.error(f"Error fetching news: {response.status_code} - {response.text}")
             return []
     
-    def fetch_local_news(self, max_results: int = 5) -> List[Dict[str, Any]]:
-        """Ambil berita dari API berita lokal Indonesia."""
-        response = requests.get(f"{self.local_news_url}cnn")
-        if response.status_code == 200:
-            articles = response.json().get("data", [])[:max_results]
-            return [{"title": art["title"], "link": art["link"], "source": "CNN Indonesia"} for art in articles]
-        else:
-            return []
-    
-    def fetch_news(self, keywords: List[str], max_results: int = 5) -> List[Dict[str, Any]]:
-        """Gabungkan berita dari berbagai sumber."""
-        news_results = []
-        news_results.extend(self.fetch_newsapi(keywords, max_results))
-        news_results.extend(self.fetch_local_news(max_results))
+    def fetch_news(self, keywords: List[str], quotes: List[str], max_results: int = 5) -> List[Dict[str, Any]]:
+        """
+        Fetch news related to keywords and quotes.
         
-        # Hapus duplikasi berdasarkan judul
-        seen_titles = set()
-        final_results = []
-        for news in news_results:
-            if news["title"] not in seen_titles:
-                seen_titles.add(news["title"])
-                final_results.append(news)
+        Args:
+            keywords: List of keywords to search for
+            quotes: List of quotes to search for
+            max_results: Maximum number of results to return
+            
+        Returns:
+            List of news articles as dictionaries
+        """
+        # Combine keywords and quotes for search
+        search_terms = keywords[:5]  # Limit to top 5 keywords
         
-        return final_results
+        # Add notable quotes if available (using first 20 chars of each quote)
+        if quotes:
+            for quote in quotes[:2]:  # Limit to first 2 quotes
+                # Take first few words of quote for search
+                short_quote = " ".join(quote.split()[:3])
+                if short_quote and short_quote not in search_terms:
+                    search_terms.append(short_quote)
+        
+        # If no search terms, use a generic term
+        if not search_terms:
+            search_terms = ["berita terkini"]
+        
+        # Search for news using the combined terms
+        return self.search_news(search_terms, page_size=max_results)
