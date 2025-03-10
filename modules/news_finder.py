@@ -1,55 +1,44 @@
+"""
+News Finder Module for Analisis Siaran Pers.
+Handles searching for news articles based on keywords.
+"""
+
 import requests
-import feedparser
-import time
+import streamlit as st
 from typing import List, Dict
 
 class NewsFinder:
-    """
-    Modul untuk mencari berita berdasarkan kata kunci dan kutipan menggunakan Google News RSS dan metode tambahan.
-    """
+    """Class to handle news search operations."""
     
-    def __init__(self):
-        self.base_url = "https://news.google.com/rss/search?q="
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.base_url = "https://newsapi.org/v2/everything"
     
-    def fetch_news(self, keywords: List[str], quotes: List[str], max_results: int = 10) -> List[Dict[str, str]]:
+    def search_news(self, keywords: List[str], language: str = "id", page_size: int = 5) -> List[Dict]:
         """
-        Mengambil berita dari Google News RSS berdasarkan kata kunci dan kutipan.
+        Search for news articles based on keywords.
         
         Args:
-            keywords (List[str]): Daftar kata kunci utama untuk pencarian berita.
-            quotes (List[str]): Daftar kutipan spesifik untuk pencarian berita.
-            max_results (int): Jumlah maksimum berita yang akan diambil.
-        
+            keywords: List of keywords to search for
+            language: Language of the articles (default is Indonesian)
+            page_size: Number of articles to return
+            
         Returns:
-            List[Dict[str, str]]: Daftar berita dengan judul, link, dan sumber media yang relevan.
+            List of news articles as dictionaries
         """
-        news_results = []
-        search_terms = keywords + quotes  # Gabungkan kata kunci dan kutipan
+        query = " OR ".join(keywords)
+        params = {
+            "q": query,
+            "language": language,
+            "pageSize": page_size,
+            "apiKey": self.api_key
+        }
         
-        for term in search_terms:
-            search_url = f"{self.base_url}{term.replace(' ', '+')}+Indonesia&hl=id&gl=ID&ceid=ID:id"
-            feed = feedparser.parse(search_url)
-            
-            for entry in feed.entries[:max_results]:
-                # Filter hanya berita yang mengandung kata kunci utama dalam judul
-                if any(kw.lower() in entry.title.lower() for kw in keywords):
-                    news_results.append({
-                        "title": entry.title,
-                        "link": entry.link,
-                        "source": entry.source.title if 'source' in entry else "Unknown"
-                    })
-            
-            time.sleep(1)  # Delay untuk menghindari limit request
+        response = requests.get(self.base_url, params=params)
         
-        return news_results
-
-# Contoh pemakaian mandiri
-if __name__ == "__main__":
-    finder = NewsFinder()
-    sample_keywords = ["retreat pimpinan daerah", "Magelang"]
-    sample_quotes = ["Pemimpin daerah akan berkumpul di Magelang"]
-    news = finder.fetch_news(sample_keywords, sample_quotes, max_results=5)
-    
-    for i, article in enumerate(news, 1):
-        print(f"{i}. {article['title']} - {article['source']}")
-        print(f"   {article['link']}")
+        if response.status_code == 200:
+            articles = response.json().get("articles", [])
+            return articles
+        else:
+            st.error(f"Error fetching news: {response.status_code} - {response.text}")
+            return []
