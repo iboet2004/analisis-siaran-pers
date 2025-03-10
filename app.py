@@ -11,14 +11,33 @@ import nltk
 import os
 
 # Atur variabel lingkungan NLTK_DATA jika belum diatur
+nltk_data_path = os.path.join(os.sep, 'tmp', 'nltk_data')
 if 'NLTK_DATA' not in os.environ:
-    os.environ['NLTK_DATA'] = '/tmp/nltk_data'
+    os.environ['NLTK_DATA'] = nltk_data_path
 
-# Download resource punkt_tab jika belum ada
+# Coba buat direktori jika belum ada
 try:
-    nltk.data.find('tokenizers/punkt_tab')
+    os.makedirs(nltk_data_path, exist_ok=True)
+    print(f"Direktori {nltk_data_path} berhasil dibuat atau sudah ada.")
+except OSError as e:
+    print(f"Error membuat direktori {nltk_data_path}: {e}")
+
+# Download resource punkt jika belum ada
+try:
+    nltk.data.find('tokenizers/punkt/PY3/english.pickle')
+    print("Resource punkt sudah ditemukan.")
 except LookupError:
-    nltk.download('punkt_tab', download_dir=os.environ['NLTK_DATA'])
+    print("Resource punkt belum ditemukan. Mengunduh...")
+    try:
+        nltk.download('punkt', download_dir=nltk_data_path)
+        print("Resource punkt berhasil diunduh.")
+    except Exception as e:
+        print(f"Error saat mengunduh resource punkt: {e}")
+
+# Pastikan path resource NLTK sudah benar
+nltk.data.path.append(nltk_data_path)
+print(f"NLTK data path: {nltk.data.path}")
+
 
 # Set konfigurasi halaman
 st.set_page_config(
