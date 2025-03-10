@@ -67,6 +67,14 @@ def display_news_results(news_results):
     
     news_df = pd.DataFrame(news_results)
     st.dataframe(news_df, use_container_width=True)
+    
+    # Tampilkan artikel dalam format yang lebih detail
+    for article in news_results:
+        st.write(f"### {article['title']}")
+        st.write(f"*{article['source']['name']}* - {article['publishedAt']}")
+        st.write(article['description'])
+        st.write(f"[Baca selengkapnya]({article['url']})")
+        st.markdown("---")
 
 def main():
     """Fungsi utama aplikasi."""
@@ -93,11 +101,15 @@ def main():
             st.session_state.extracted_text = text
             st.session_state.document_name = filename
             st.success("Dokumen berhasil diunggah dan diproses!")
+            
+            if st.button("Lanjut ke Ekstraksi Kata Kunci"):
+                st.session_state.menu_index = 2  # Index untuk menu Ekstraksi Kata Kunci
     
     elif choice == "Ekstraksi Kata Kunci & Kutipan":
         if "extracted_text" not in st.session_state:
             st.warning("Anda belum mengunggah dokumen.")
             return
+            
         with st.spinner("Menganalisis teks..."):
             if "analysis_result" not in st.session_state:
                 text = st.session_state.extracted_text
@@ -110,12 +122,17 @@ def main():
         
         st.write("### Kata Kunci")
         keywords = [kw for kw, _ in analysis["keywords"]]
+        st.session_state.keywords = keywords  # Simpan kata kunci untuk pencarian berita
         st.write(", ".join(keywords))
         
         st.write("### Kutipan")
         quotes = [quote_data['quote'] for quote_data in analysis["quotes"]]
+        st.session_state.quotes = quotes  # Simpan kutipan untuk pencarian berita
         for quote in quotes:
             st.markdown(f"> \"{quote}\"")
+            
+        if st.button("Cari Berita Terkait"):
+            st.session_state.menu_index = 3  # Index untuk menu Pencarian Berita
     
     elif choice == "Pencarian Berita":
         if "analysis_result" not in st.session_state:
@@ -128,7 +145,8 @@ def main():
         if not keywords and not quotes:
             st.warning("Tidak ada kata kunci atau kutipan yang ditemukan.")
         else:
-            news_finder = NewsFinder()
+            api_key = st.secrets["news_api_key"]  # Ambil API key dari secrets Streamlit
+            news_finder = NewsFinder(api_key)
             with st.spinner("Mengambil berita..."):
                 news_results = news_finder.fetch_news(keywords, quotes, max_results=5)
                 st.session_state.news_results = news_results
