@@ -142,126 +142,126 @@ class KeywordExtractor:
         return [sentence for sentence, _ in sentence_scores[:num_phrases]]
     
     def extract_quotes(self, text: str) -> List[Dict[str, str]]:
-    """
-    Extract quotes from text using regex patterns.
-    
-    Args:
-        text: Text to extract quotes from
+        """
+        Extract quotes from text using regex patterns.
         
-    Returns:
-        List of dictionaries containing quote and context
-    """
-    quotes = []
-    
-    # Pattern untuk kutipan dengan tanda petik ganda
-    pattern_double = r'"([^"]*)"'
-    matches_double = re.findall(pattern_double, text)
-    
-    # Pattern untuk kutipan dengan tanda petik tunggal dan backtick
-    pattern_single = r"'([^']*)'|\"([^\"]*)\""
-    matches_single = re.findall(pattern_single, text)
-    
-    # Flatten single quote matches (could be in different groups)
-    flattened_single = []
-    for match in matches_single:
-        for group in match:
-            if group:
-                flattened_single.append(group)
-    
-    # Combine quotes and filter out short ones (less than 3 words)
-    all_quotes = matches_double + flattened_single
-    filtered_quotes = [q for q in all_quotes if len(q.split()) >= 3]
-    
-    # Extract context for each quote (the sentence containing the quote)
-    for quote in filtered_quotes:
-        quote_pattern = re.escape(quote)
-        for sentence in sent_tokenize(text):
-            if re.search(quote_pattern, sentence):
-                quotes.append({
-                    "quote": quote,
-                    "context": sentence
-                })
-                break
-    
-    return quotes  # Pastikan ini berada dalam fungsi dengan indentasi yang benar
-
-def extract_named_entities(self, text: str) -> Dict[str, List[str]]:
-    """
-    Extract potential named entities from text.
-    This is a simplified approach as we don't have a full NER model for Indonesian.
-    
-    Args:
-        text: Text to extract named entities from
+        Args:
+            text: Text to extract quotes from
+            
+        Returns:
+            List of dictionaries containing quote and context
+        """
+        quotes = []
         
-    Returns:
-        Dictionary of entity types and their instances
-    """
-    entities = {
-        "organizations": [],
-        "people": [],
-        "locations": []
-    }
-    
-    # Simple pattern matching for capital words not at the start of sentences
-    sentences = sent_tokenize(text)
-    for sentence in sentences:
-        words = word_tokenize(sentence)
-        for i, word in enumerate(words):
-            # Skip first word of sentence
-            if i == 0:
-                continue
-                
-            # Check if word starts with capital letter and is not a stopword
-            if word and word[0].isupper() and word.lower() not in self.stopwords:
-                # Check if it's part of a multiple-word entity
-                entity = word
-                j = i + 1
-                while j < len(words) and words[j][0].isupper() if words[j] else False:
-                    entity += " " + words[j]
-                    j += 1
-                
-                # Simple heuristic categorization
-                if any(hint in sentence.lower() for hint in ["pt ", "perusahaan", "grup", "kelompok"]):
-                    if entity not in entities["organizations"]:
-                        entities["organizations"].append(entity)
-                elif any(hint in sentence.lower() for hint in ["kota", "provinsi", "kabupaten", "desa"]):
-                    if entity not in entities["locations"]:
-                        entities["locations"].append(entity)
-                else:
-                    if entity not in entities["people"]:
-                        entities["people"].append(entity)
-    
-    return entities
-
-def analyze_text(self, text: str) -> Dict:
-    """
-    Perform comprehensive text analysis including keywords, phrases, quotes, and entities.
-    
-    Args:
-        text: Text to analyze
+        # Pattern untuk kutipan dengan tanda petik ganda
+        pattern_double = r'"([^"]*)"'
+        matches_double = re.findall(pattern_double, text)
         
-    Returns:
-        Dictionary containing analysis results
-    """
-    if not text or len(text.strip()) < 50:
-        st.error("Teks terlalu pendek untuk dianalisis.")
-        return {}
+        # Pattern untuk kutipan dengan tanda petik tunggal dan backtick
+        pattern_single = r"'([^']*)'|\"([^\"]*)\""
+        matches_single = re.findall(pattern_single, text)
+        
+        # Flatten single quote matches (could be in different groups)
+        flattened_single = []
+        for match in matches_single:
+            for group in match:
+                if group:
+                    flattened_single.append(group)
+        
+        # Combine quotes and filter out short ones (less than 3 words)
+        all_quotes = matches_double + flattened_single
+        filtered_quotes = [q for q in all_quotes if len(q.split()) >= 3]
+        
+        # Extract context for each quote (the sentence containing the quote)
+        for quote in filtered_quotes:
+            quote_pattern = re.escape(quote)
+            for sentence in sent_tokenize(text):
+                if re.search(quote_pattern, sentence):
+                    quotes.append({
+                        "quote": quote,
+                        "context": sentence
+                    })
+                    break
+        
+        return quotes
     
-    analysis = {}
+    def extract_named_entities(self, text: str) -> Dict[str, List[str]]:
+        """
+        Extract potential named entities from text.
+        This is a simplified approach as we don't have a full NER model for Indonesian.
+        
+        Args:
+            text: Text to extract named entities from
+            
+        Returns:
+            Dictionary of entity types and their instances
+        """
+        entities = {
+            "organizations": [],
+            "people": [],
+            "locations": []
+        }
+        
+        # Simple pattern matching for capital words not at the start of sentences
+        sentences = sent_tokenize(text)
+        for sentence in sentences:
+            words = word_tokenize(sentence)
+            for i, word in enumerate(words):
+                # Skip first word of sentence
+                if i == 0:
+                    continue
+                    
+                # Check if word starts with capital letter and is not a stopword
+                if word and word[0].isupper() and word.lower() not in self.stopwords:
+                    # Check if it's part of a multiple-word entity
+                    entity = word
+                    j = i + 1
+                    while j < len(words) and words[j][0].isupper() if words[j] else False:
+                        entity += " " + words[j]
+                        j += 1
+                    
+                    # Simple heuristic categorization
+                    if any(hint in sentence.lower() for hint in ["pt ", "perusahaan", "grup", "kelompok"]):
+                        if entity not in entities["organizations"]:
+                            entities["organizations"].append(entity)
+                    elif any(hint in sentence.lower() for hint in ["kota", "provinsi", "kabupaten", "desa"]):
+                        if entity not in entities["locations"]:
+                            entities["locations"].append(entity)
+                    else:
+                        if entity not in entities["people"]:
+                            entities["people"].append(entity)
+        
+        return entities
     
-    # Extract keywords
-    analysis["keywords"] = self.extract_keywords_tfidf(text, num_keywords=15)
-    
-    # Extract key phrases
-    analysis["key_phrases"] = self.extract_keyphrases(text, num_phrases=5)
-    
-    # Extract quotes
-    analysis["quotes"] = self.extract_quotes(text)
-    
-    # Extract entities
-    analysis["entities"] = self.extract_named_entities(text)
-    
-    return analysis
+    def analyze_text(self, text: str) -> Dict:
+        """
+        Perform comprehensive text analysis including keywords, phrases, quotes, and entities.
+        
+        Args:
+            text: Text to analyze
+            
+        Returns:
+            Dictionary containing analysis results
+        """
+        if not text or len(text.strip()) < 50:
+            st.error("Teks terlalu pendek untuk dianalisis.")
+            return {}
+        
+        analysis = {}
+        
+        # Extract keywords
+        analysis["keywords"] = self.extract_keywords_tfidf(text, num_keywords=15)
+        
+        # Extract key phrases
+        analysis["key_phrases"] = self.extract_keyphrases(text, num_phrases=5)
+        
+        # Extract quotes
+        analysis["quotes"] = self.extract_quotes(text)
+        
+        # Extract entities
+        analysis["entities"] = self.extract_named_entities(text)
+        
+        return analysis
 
 
 # Fungsi untuk testing modul secara mandiri
@@ -311,4 +311,3 @@ def test_keyword_extractor():
 # Menjalankan modul ini secara mandiri jika dipanggil langsung
 if __name__ == "__main__":
     test_keyword_extractor()
-
