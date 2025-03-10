@@ -4,6 +4,7 @@ Aplikasi ini menganalisis dokumen siaran pers dan mencari berita terkait.
 """
 
 import streamlit as st
+import pandas as pd
 from modules.document_processor import DocumentProcessor
 from modules.keyword_extractor import KeywordExtractor
 from modules.news_finder import NewsFinder  # Import modul pencarian berita
@@ -49,7 +50,7 @@ def show_welcome():
     Aplikasi ini membantu Anda menganalisis dokumen siaran pers dalam Bahasa Indonesia dengan:
     
     1. **Ekstraksi Teks** - Unggah dokumen PDF, DOCX, atau TXT
-    2. **Analisis Kata Kunci** - Ekstrak kata kunci penting dan kutipan 
+    2. **Analisis Kata Kunci & Kutipan** - Ekstrak kata kunci penting dan kutipan 
     3. **Pencarian Media** - Temukan berita terkait dari berbagai media
     4. **Analisis Sentimen** - Ketahui bagaimana media menanggapi (Coming Soon)
     5. **Visualisasi Data** - Lihat tren dan laporan interaktif (Coming Soon)
@@ -58,14 +59,14 @@ def show_welcome():
     """)
 
 def display_news_results(news_results):
-    """Menampilkan hasil pencarian berita."""
+    """Menampilkan hasil pencarian berita dalam bentuk tabel."""
     st.subheader("Hasil Pencarian Berita")
     if not news_results:
         st.warning("Tidak ada berita yang ditemukan untuk kata kunci ini.")
         return
     
-    for i, article in enumerate(news_results, 1):
-        st.markdown(f"**{i}. [{article['title']}]({article['link']})** - {article['source']}")
+    news_df = pd.DataFrame(news_results)
+    st.dataframe(news_df, use_container_width=True)
 
 def main():
     """Fungsi utama aplikasi."""
@@ -73,7 +74,7 @@ def main():
     menu_options = [
         "Beranda",
         "Unggah Dokumen",
-        "Ekstraksi Kata Kunci",
+        "Ekstraksi Kata Kunci & Kutipan",
         "Pencarian Berita",
         "Analisis Sentimen (Coming Soon)",
         "Laporan & Visualisasi (Coming Soon)"
@@ -93,7 +94,7 @@ def main():
             st.session_state.document_name = filename
             st.success("Dokumen berhasil diunggah dan diproses!")
     
-    elif choice == "Ekstraksi Kata Kunci":
+    elif choice == "Ekstraksi Kata Kunci & Kutipan":
         if "extracted_text" not in st.session_state:
             st.warning("Anda belum mengunggah dokumen.")
             return
@@ -105,23 +106,31 @@ def main():
             else:
                 analysis = st.session_state.analysis_result
         
-        st.subheader("Hasil Analisis Kata Kunci")
-        st.write("### Kata Kunci")
-        for keyword, score in analysis["keywords"]:
-            st.write(f"- {keyword} ({score:.4f})")
+        st.subheader("Hasil Analisis Kata Kunci & Kutipan")
         
+        st.write("### Kata Kunci")
+        keywords = [kw for kw, _ in analysis["keywords"]]
+        st.write(", ".join(keywords))
+        
+        st.write("### Kutipan")
+        quotes = [quote_data['quote'] for quote_data in analysis["quotes"]]
+        for quote in quotes:
+            st.markdown(f"> "{quote}"")
+    
     elif choice == "Pencarian Berita":
         if "analysis_result" not in st.session_state:
             st.warning("Anda harus mengekstrak kata kunci terlebih dahulu!")
             return
         
         keywords = [kw for kw, _ in st.session_state.analysis_result["keywords"]]
-        if not keywords:
-            st.warning("Tidak ada kata kunci yang ditemukan.")
+        quotes = [quote_data['quote'] for quote_data in st.session_state.analysis_result["quotes"]]
+        
+        if not keywords and not quotes:
+            st.warning("Tidak ada kata kunci atau kutipan yang ditemukan.")
         else:
             news_finder = NewsFinder()
             with st.spinner("Mengambil berita..."):
-                news_results = news_finder.fetch_news(keywords, max_results=5)
+                news_results = news_finder.fetch_news(keywords, quotes, max_results=5)
                 st.session_state.news_results = news_results
             display_news_results(st.session_state.news_results)
     
