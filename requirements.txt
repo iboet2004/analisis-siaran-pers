@@ -12,3 +12,4 @@ nltk>=3.6.0
 scikit-learn>=1.0.0
 Sastrawi>=1.0.1
 keybert>=0.6.0
+feedparser>=6.0.0
