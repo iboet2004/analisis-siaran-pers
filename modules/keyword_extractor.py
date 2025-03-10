@@ -157,8 +157,8 @@ class KeywordExtractor:
         pattern_double = r'"([^"]*)"'
         matches_double = re.findall(pattern_double, text)
         
-        # Pattern untuk kutipan dengan tanda petik tunggal
-        pattern_single = r''([^']*)'|'([^']*)'|`([^`]*)'
+        # Pattern untuk kutipan dengan tanda petik tunggal dan backtick
+        pattern_single = r"'([^']*)'|\"([^\"]*)\""
         matches_single = re.findall(pattern_single, text)
         
         # Flatten single quote matches (could be in different groups)
@@ -168,7 +168,7 @@ class KeywordExtractor:
                 if group:
                     flattened_single.append(group)
         
-        # Combine quotes and filter out short ones (less than 5 words)
+        # Combine quotes and filter out short ones (less than 3 words)
         all_quotes = matches_double + flattened_single
         filtered_quotes = [q for q in all_quotes if len(q.split()) >= 3]
         
