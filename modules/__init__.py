@@ -11,4 +11,4 @@ from .keyword_extractor import KeywordExtractor
 # from .sentiment_analyzer import SentimentAnalyzer
 # from .visualizer import Visualizer
 
-__all__ = ['DocumentProcessor', 'KeywordExtractor']  # Tambahkan modul lain di sini nanti
+__all__ = ['DocumentProcessor', 'KeywordExtractor', 'NewsFinder']  # Tambahkan modul lain di sini nanti
