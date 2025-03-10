@@ -142,24 +142,24 @@ class KeywordExtractor:
         return [sentence for sentence, _ in sentence_scores[:num_phrases]]
     
     def extract_quotes(self, text: str) -> List[Dict[str, str]]:
-    """
-    Extract quotes from text using regex patterns.
+        """
+        Extract quotes from text using regex patterns.
     
-    Args:
-        text: Text to extract quotes from
+        Args:
+            text: Text to extract quotes from
         
-    Returns:
-        List of dictionaries containing quote and context
-    """
-    quotes = []
+        Returns:
+            List of dictionaries containing quote and context
+        """
+        quotes = []
     
-    # Pattern untuk kutipan dengan tanda petik ganda
-    pattern_double = r'"([^"]*)"'
-    matches_double = re.findall(pattern_double, text)
+        # Pattern untuk kutipan dengan tanda petik ganda
+        pattern_double = r'"([^"]*)"'
+        matches_double = re.findall(pattern_double, text)
     
-    # Pattern untuk kutipan dengan tanda petik tunggal dan backtick
-    pattern_single = r"'([^']*)'|\"([^\"]*)\""
-    matches_single = re.findall(pattern_single, text)
+        # Pattern untuk kutipan dengan tanda petik tunggal dan backtick
+        pattern_single = r"'([^']*)'|\"([^\"]*)\""
+        matches_single = re.findall(pattern_single, text)
     
     # Flatten single quote matches (could be in different groups)
     flattened_single = []
