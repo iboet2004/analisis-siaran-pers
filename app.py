@@ -6,6 +6,7 @@ Aplikasi ini menganalisis dokumen siaran pers dan mencari berita terkait.
 import streamlit as st
 from modules.document_processor import DocumentProcessor
 from modules.keyword_extractor import KeywordExtractor
+from modules.news_finder import NewsFinder
 
 import nltk
 import os
