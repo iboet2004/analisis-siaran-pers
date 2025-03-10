@@ -1,37 +1,31 @@
-"""
-News Finder Module for Analisis Siaran Pers.
-Handles searching for news articles based on keywords.
-"""
-
 import requests
 import streamlit as st
 from typing import List, Dict
 
 class NewsFinder:
     """Class to handle news search operations."""
-    
+
     def __init__(self, api_key: str):
         self.api_key = api_key
         self.base_url = "https://newsapi.org/v2/everything"
-    
-    def search_news(self, keywords: List[str], language: str = "id", page_size: int = 5) -> List[Dict]:
-        """
-        Search for news articles based on keywords.
+
+    def search_news(self, keywords: List[str], quotes: List[str] = None, language: str = "id", page_size: int = 5) -> List[Dict]:
+        """Search for news articles based on keywords and quotes."""
+        query_parts = []
         
-        Args:
-            keywords: List of keywords to search for
-            language: Language of the articles (default is Indonesian)
-            page_size: Number of articles to return
-            
-        Returns:
-            List of news articles as dictionaries
-        """
-        query = " OR ".join(keywords)
+        if keywords:
+            query_parts.append(" OR ".join(keywords))
+        
+        if quotes:
+            query_parts.extend([f'"{quote}"' for quote in quotes])
+        
+        query = ' OR '.join(query_parts)
+        
         params = {
-            "q": query,
-            "language": language,
-            "pageSize": page_size,
-            "apiKey": self.api_key
+            'q': query,
+            'language': language,
+            'pageSize': page_size,
+            'apiKey': self.api_key
         }
         
         response = requests.get(self.base_url, params=params)
