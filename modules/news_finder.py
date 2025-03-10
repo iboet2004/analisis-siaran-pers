@@ -1,7 +1,5 @@
 import requests
 import feedparser
-import streamlit as st
-import pandas as pd
 from typing import List, Dict, Any
 
 class NewsFinder:
@@ -28,7 +26,6 @@ class NewsFinder:
         if response.status_code == 200:
             return response.json().get("articles", [])
         else:
-            st.error(f"Gagal mengambil berita dari NewsAPI: {response.status_code}")
             return []
     
     def fetch_local_news(self, max_results: int = 5) -> List[Dict[str, Any]]:
@@ -38,16 +35,6 @@ class NewsFinder:
             articles = response.json().get("data", [])[:max_results]
             return [{"title": art["title"], "link": art["link"], "source": "CNN Indonesia"} for art in articles]
         else:
-            st.error(f"Gagal mengambil berita dari API berita lokal: {response.status_code}")
-            return []
-    
-    def fetch_twitter_trends(self) -> List[str]:
-        """Ambil tren Twitter Indonesia."""
-        response = requests.get(self.twitter_trends_url)
-        if response.status_code == 200:
-            return response.json().get("trends", [])[:5]  # Ambil 5 tren teratas
-        else:
-            st.error(f"Gagal mengambil tren Twitter: {response.status_code}")
             return []
     
     def fetch_news(self, keywords: List[str], max_results: int = 5) -> List[Dict[str, Any]]:
@@ -65,21 +52,3 @@ class NewsFinder:
                 final_results.append(news)
         
         return final_results
-
-# Integrasi dengan Streamlit
-st.title("Pencarian Berita")
-api_key = st.secrets["news_api_key"]
-news_finder = NewsFinder(api_key)
-
-keywords_input = st.text_input("Masukkan kata kunci pencarian (pisahkan dengan koma)", "politik, ekonomi, magelang")
-keywords = [kw.strip() for kw in keywords_input.split(",") if kw.strip()]
-
-if st.button("Cari Berita"):
-    with st.spinner("Mengambil berita..."):
-        news_results = news_finder.fetch_news(keywords, max_results=5)
-        
-        if news_results:
-            df = pd.DataFrame(news_results)
-            st.dataframe(df, use_container_width=True)
-        else:
-            st.warning("Tidak ada berita ditemukan.")
