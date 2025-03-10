@@ -1,6 +1,7 @@
 import requests
 import feedparser
 import streamlit as st
+import pandas as pd
 from typing import List, Dict, Any
 
 class NewsFinder:
@@ -65,13 +66,20 @@ class NewsFinder:
         
         return final_results
 
-# Contoh pemakaian mandiri
-if __name__ == "__main__":
-    api_key = st.secrets["news_api_key"]  # Gantilah dengan API key yang valid
-    finder = NewsFinder(api_key)
-    sample_keywords = ["politik", "ekonomi", "magelang"]
-    news = finder.fetch_news(sample_keywords, max_results=5)
-    
-    for i, article in enumerate(news, 1):
-        print(f"{i}. {article['title']} - {article['source']}")
-        print(f"   {article['link']}")
+# Integrasi dengan Streamlit
+st.title("Pencarian Berita")
+api_key = st.secrets["news_api_key"]
+news_finder = NewsFinder(api_key)
+
+keywords_input = st.text_input("Masukkan kata kunci pencarian (pisahkan dengan koma)", "politik, ekonomi, magelang")
+keywords = [kw.strip() for kw in keywords_input.split(",") if kw.strip()]
+
+if st.button("Cari Berita"):
+    with st.spinner("Mengambil berita..."):
+        news_results = news_finder.fetch_news(keywords, max_results=5)
+        
+        if news_results:
+            df = pd.DataFrame(news_results)
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.warning("Tidak ada berita ditemukan.")
