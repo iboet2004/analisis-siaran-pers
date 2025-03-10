@@ -4,7 +4,6 @@ Handles the extraction of keywords, key phrases, and quotes from text.
 """
 
 import re
-import os
 import nltk
 import streamlit as st
 from typing import List, Dict, Tuple, Optional
@@ -13,23 +12,13 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 
-# Atur path NLTK
-nltk_data_path = os.path.join(os.sep, 'tmp', 'nltk_data')
-if 'NLTK_DATA' not in os.environ:
-    os.environ['NLTK_DATA'] = nltk_data_path
-
-# Buat direktori jika belum ada
-os.makedirs(nltk_data_path, exist_ok=True)
-
-# Tambahkan path ke NLTK
-nltk.data.path.append(nltk_data_path)
-
-# Download NLTK resources yang diperlukan
-for resource in ['punkt', 'stopwords']:
-    try:
-        nltk.data.find(f'tokenizers/{resource}')
-    except LookupError:
-        nltk.download(resource, download_dir=nltk_data_path)
+# Download NLTK resources
+try:
+    nltk.data.find('tokenizers/punkt')
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('punkt')
+    nltk.download('stopwords')
 
 
 class KeywordExtractor:
@@ -42,11 +31,7 @@ class KeywordExtractor:
         self.stemmer = factory.create_stemmer()
         
         # Indonesian stopwords from NLTK + custom additions
-        try:
-            self.stopwords = set(stopwords.words('indonesian'))
-        except LookupError:
-            nltk.download('stopwords', download_dir=nltk_data_path)
-            self.stopwords = set(stopwords.words('indonesian'))
+        self.stopwords = set(stopwords.words('indonesian'))
         
         # Add custom Indonesian stopwords
         custom_stopwords = {
@@ -97,43 +82,33 @@ class KeywordExtractor:
         Returns:
             List of (keyword, score) tuples
         """
-        try:
-            # Preprocess text
-            processed_text = self.preprocess_text(text)
-            
-            # Split text into sentences
-            sentences = sent_tokenize(text)
-            
-            # If there are too few sentences, create artificial ones
-            if len(sentences) < 2:
-                # Split into chunks of ~100 characters
-                chunks = [text[i:i+100] for i in range(0, len(text), 100)]
-                sentences = chunks if chunks else ["dummy text"]
-            
-            # Vectorize text using TF-IDF
-            vectorizer = TfidfVectorizer(max_features=num_keywords * 2)
-            
-            # Handle case when vectorizer fails
-            try:
-                tfidf_matrix = vectorizer.fit_transform(sentences)
-            except ValueError:
-                # Fallback: use the entire text as one document
-                tfidf_matrix = vectorizer.fit_transform([text])
-            
-            # Get feature names
-            feature_names = vectorizer.get_feature_names_out()
-            
-            # Calculate average TF-IDF scores across sentences
-            avg_scores = tfidf_matrix.mean(axis=0).A1
-            
-            # Get top keywords
-            top_indices = avg_scores.argsort()[-num_keywords:][::-1]
-            keywords = [(feature_names[i], avg_scores[i]) for i in top_indices]
-            
-            return keywords
-        except Exception as e:
-            st.error(f"Error extracting keywords: {str(e)}")
-            return [("error", 0.0)]
+        # Preprocess text
+        processed_text = self.preprocess_text(text)
+        
+        # Split text into sentences
+        sentences = sent_tokenize(text)
+        
+        # If there are too few sentences, create artificial ones
+        if len(sentences) < 2:
+            # Split into chunks of ~100 characters
+            chunks = [text[i:i+100] for i in range(0, len(text), 100)]
+            sentences = chunks if chunks else ["dummy text"]
+        
+        # Vectorize text using TF-IDF
+        vectorizer = TfidfVectorizer(max_features=num_keywords * 2)
+        tfidf_matrix = vectorizer.fit_transform(sentences)
+        
+        # Get feature names
+        feature_names = vectorizer.get_feature_names_out()
+        
+        # Calculate average TF-IDF scores across sentences
+        avg_scores = tfidf_matrix.mean(axis=0).A1
+        
+        # Get top keywords
+        top_indices = avg_scores.argsort()[-num_keywords:][::-1]
+        keywords = [(feature_names[i], avg_scores[i]) for i in top_indices]
+        
+        return keywords
     
     def extract_keyphrases(self, text: str, num_phrases: int = 5) -> List[str]:
         """
@@ -146,32 +121,25 @@ class KeywordExtractor:
         Returns:
             List of key phrases
         """
-        try:
-            # Split into sentences
-            sentences = sent_tokenize(text)
-            
-            if not sentences:
-                return []
-                
-            # Calculate sentence scores based on keyword presence
-            keywords = [kw for kw, _ in self.extract_keywords_tfidf(text, num_keywords=20)]
-            sentence_scores = []
-            
-            for sentence in sentences:
-                score = 0
-                for keyword in keywords:
-                    if keyword.lower() in sentence.lower():
-                        score += 1
-                sentence_scores.append((sentence, score))
-            
-            # Sort sentences by score
-            sentence_scores.sort(key=lambda x: x[1], reverse=True)
-            
-            # Return top phrases
-            return [sentence for sentence, _ in sentence_scores[:num_phrases]]
-        except Exception as e:
-            st.error(f"Error extracting key phrases: {str(e)}")
-            return []
+        # Split into sentences
+        sentences = sent_tokenize(text)
+        
+        # Calculate sentence scores based on keyword presence
+        keywords = [kw for kw, _ in self.extract_keywords_tfidf(text, num_keywords=20)]
+        sentence_scores = []
+        
+        for sentence in sentences:
+            score = 0
+            for keyword in keywords:
+                if keyword.lower() in sentence.lower():
+                    score += 1
+            sentence_scores.append((sentence, score))
+        
+        # Sort sentences by score
+        sentence_scores.sort(key=lambda x: x[1], reverse=True)
+        
+        # Return top phrases
+        return [sentence for sentence, _ in sentence_scores[:num_phrases]]
     
     def extract_quotes(self, text: str) -> List[Dict[str, str]]:
         """
@@ -183,54 +151,39 @@ class KeywordExtractor:
         Returns:
             List of dictionaries containing quote and context
         """
-        try:
-            quotes = []
-            
-            # Improved patterns for Indonesian quotes
-            # Pattern untuk kutipan dengan tanda petik ganda (berbagai jenis)
-            patterns = [
-                r'"([^"]{10,})"',             # Standard double quotes
-                r'"([^"]{10,})"',             # Curly double quotes
-                r'["]([^"]{10,})["]',         # Other double quotes
-                r''([^']{10,})''              # Single quotes
-            ]
-            
-            all_quotes = []
-            for pattern in patterns:
-                matches = re.findall(pattern, text)
-                all_quotes.extend(matches)
-            
-            # Deduplicate quotes
-            unique_quotes = list(set(all_quotes))
-            
-            # Filter out very short quotes
-            filtered_quotes = [q for q in unique_quotes if len(q.split()) >= 3]
-            
-            # Extract context for each quote (the sentence containing the quote)
-            sentences = sent_tokenize(text)
-            for quote in filtered_quotes:
-                quote_pattern = re.escape(quote)
-                found = False
-                for sentence in sentences:
-                    if re.search(quote_pattern, sentence):
-                        quotes.append({
-                            "quote": quote,
-                            "context": sentence
-                        })
-                        found = True
-                        break
-                
-                # If context not found, use the quote itself
-                if not found and len(quote.split()) >= 5:
+        quotes = []
+        
+        # Pattern untuk kutipan dengan tanda petik ganda
+        pattern_double = r'"([^"]*)"'
+        matches_double = re.findall(pattern_double, text)
+        
+        # Pattern untuk kutipan dengan tanda petik tunggal
+        pattern_single = r''([^']*)'|'([^']*)'|`([^`]*)'
+        matches_single = re.findall(pattern_single, text)
+        
+        # Flatten single quote matches (could be in different groups)
+        flattened_single = []
+        for match in matches_single:
+            for group in match:
+                if group:
+                    flattened_single.append(group)
+        
+        # Combine quotes and filter out short ones (less than 5 words)
+        all_quotes = matches_double + flattened_single
+        filtered_quotes = [q for q in all_quotes if len(q.split()) >= 3]
+        
+        # Extract context for each quote (the sentence containing the quote)
+        for quote in filtered_quotes:
+            quote_pattern = re.escape(quote)
+            for sentence in sent_tokenize(text):
+                if re.search(quote_pattern, sentence):
                     quotes.append({
                         "quote": quote,
-                        "context": quote
+                        "context": sentence
                     })
-            
-            return quotes
-        except Exception as e:
-            st.error(f"Error extracting quotes: {str(e)}")
-            return []
+                    break
+        
+        return quotes
     
     def extract_named_entities(self, text: str) -> Dict[str, List[str]]:
         """
@@ -243,49 +196,42 @@ class KeywordExtractor:
         Returns:
             Dictionary of entity types and their instances
         """
-        try:
-            entities = {
-                "organizations": [],
-                "people": [],
-                "locations": []
-            }
-            
-            # Simple pattern matching for capital words not at the start of sentences
-            sentences = sent_tokenize(text)
-            for sentence in sentences:
-                words = word_tokenize(sentence)
-                for i, word in enumerate(words):
-                    # Skip first word of sentence
-                    if i == 0:
-                        continue
-                        
-                    # Check if word starts with capital letter and is not a stopword
-                    if word and word[0].isupper() and word.lower() not in self.stopwords:
-                        # Check if it's part of a multiple-word entity
-                        entity = word
-                        j = i + 1
-                        while j < len(words):
-                            if words[j] and words[j][0].isupper():
-                                entity += " " + words[j]
-                                j += 1
-                            else:
-                                break
-                        
-                        # Simple heuristic categorization
-                        if any(hint in sentence.lower() for hint in ["pt ", "perusahaan", "grup", "kelompok"]):
-                            if entity not in entities["organizations"]:
-                                entities["organizations"].append(entity)
-                        elif any(hint in sentence.lower() for hint in ["kota", "provinsi", "kabupaten", "desa"]):
-                            if entity not in entities["locations"]:
-                                entities["locations"].append(entity)
-                        else:
-                            if entity not in entities["people"]:
-                                entities["people"].append(entity)
-            
-            return entities
-        except Exception as e:
-            st.error(f"Error extracting named entities: {str(e)}")
-            return {"organizations": [], "people": [], "locations": []}
+        entities = {
+            "organizations": [],
+            "people": [],
+            "locations": []
+        }
+        
+        # Simple pattern matching for capital words not at the start of sentences
+        sentences = sent_tokenize(text)
+        for sentence in sentences:
+            words = word_tokenize(sentence)
+            for i, word in enumerate(words):
+                # Skip first word of sentence
+                if i == 0:
+                    continue
+                    
+                # Check if word starts with capital letter and is not a stopword
+                if word and word[0].isupper() and word.lower() not in self.stopwords:
+                    # Check if it's part of a multiple-word entity
+                    entity = word
+                    j = i + 1
+                    while j < len(words) and words[j][0].isupper() if words[j] else False:
+                        entity += " " + words[j]
+                        j += 1
+                    
+                    # Simple heuristic categorization
+                    if any(hint in sentence.lower() for hint in ["pt ", "perusahaan", "grup", "kelompok"]):
+                        if entity not in entities["organizations"]:
+                            entities["organizations"].append(entity)
+                    elif any(hint in sentence.lower() for hint in ["kota", "provinsi", "kabupaten", "desa"]):
+                        if entity not in entities["locations"]:
+                            entities["locations"].append(entity)
+                    else:
+                        if entity not in entities["people"]:
+                            entities["people"].append(entity)
+        
+        return entities
     
     def analyze_text(self, text: str) -> Dict:
         """
@@ -298,13 +244,8 @@ class KeywordExtractor:
             Dictionary containing analysis results
         """
         if not text or len(text.strip()) < 50:
-            st.warning("Teks terlalu pendek untuk dianalisis.")
-            return {
-                "keywords": [],
-                "key_phrases": [],
-                "quotes": [],
-                "entities": {"organizations": [], "people": [], "locations": []}
-            }
+            st.error("Teks terlalu pendek untuk dianalisis.")
+            return {}
         
         analysis = {}
         
