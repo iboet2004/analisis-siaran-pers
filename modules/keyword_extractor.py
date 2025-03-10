@@ -143,7 +143,7 @@ class KeywordExtractor:
     
     def extract_quotes(self, text: str) -> List[Dict[str, str]]:
         """
-        Extract quotes from text using multiple regex patterns to catch more quotes.
+        Extract quotes from text using regex patterns.
         
         Args:
             text: Text to extract quotes from
@@ -153,35 +153,24 @@ class KeywordExtractor:
         """
         quotes = []
         
-        # Multiple patterns for different quote styles
-        patterns = [
-            r'"([^"]{10,})"',             # Double quotes with min length
-            r'"([^"]{10,})"',             # Curly double quotes
-            r''([^']{10,})'',             # Curly single quotes
-            r"'([^']{10,})'",             # Single quotes
-            r'"([^"]{10,})"',             # Another double quote style
-            r'[^"]"([^"]{10,})"[^"]',     # Double quotes not part of a larger quote
-            r'[^"]"(.{10,}?)"[^"]'        # Non-greedy match for double quotes
-        ]
+        # Pattern untuk kutipan dengan tanda petik ganda
+        pattern_double = r'"([^"]*)"'
+        matches_double = re.findall(pattern_double, text)
         
-        all_matches = []
-        for pattern in patterns:
-            matches = re.findall(pattern, text)
-            if matches:
-                all_matches.extend(matches)
+        # Pattern untuk kutipan dengan tanda petik tunggal dan backtick
+        pattern_single = r"'([^']*)'|\"([^\"]*)\""
+        matches_single = re.findall(pattern_single, text)
         
-        # Remove duplicates while preserving order
-        unique_quotes = []
-        for match in all_matches:
-            # Skip if it's a substring of another quote we already have
-            if any(match in q for q in unique_quotes):
-                continue
-            # Skip if another quote is a substring of this one and add this one instead
-            unique_quotes = [q for q in unique_quotes if q not in match]
-            unique_quotes.append(match)
+        # Flatten single quote matches (could be in different groups)
+        flattened_single = []
+        for match in matches_single:
+            for group in match:
+                if group:
+                    flattened_single.append(group)
         
-        # Filter quotes that are too short (less than 3 words)
-        filtered_quotes = [q.strip() for q in unique_quotes if len(q.strip().split()) >= 3]
+        # Combine quotes and filter out short ones (less than 3 words)
+        all_quotes = matches_double + flattened_single
+        filtered_quotes = [q for q in all_quotes if len(q.split()) >= 3]
         
         # Extract context for each quote (the sentence containing the quote)
         for quote in filtered_quotes:
@@ -193,15 +182,6 @@ class KeywordExtractor:
                         "context": sentence
                     })
                     break
-            else:
-                # If no exact match found, try to find the closest sentence
-                for sentence in sent_tokenize(text):
-                    if any(part in sentence for part in quote.split() if len(part) > 5):
-                        quotes.append({
-                            "quote": quote,
-                            "context": sentence
-                        })
-                        break
         
         return quotes
     
