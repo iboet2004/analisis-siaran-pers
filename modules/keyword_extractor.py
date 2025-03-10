@@ -216,9 +216,12 @@ class KeywordExtractor:
                     # Check if it's part of a multiple-word entity
                     entity = word
                     j = i + 1
-                    while j < len(words) and words[j][0].isupper() if words[j] else False:
-                        entity += " " + words[j]
-                        j += 1
+                    while j < len(words):
+                        if words[j] and words[j][0].isupper():
+                            entity += " " + words[j]
+                            j += 1
+                        else:
+                            break
                     
                     # Simple heuristic categorization
                     if any(hint in sentence.lower() for hint in ["pt ", "perusahaan", "grup", "kelompok"]):
