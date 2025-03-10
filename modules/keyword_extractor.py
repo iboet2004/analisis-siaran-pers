@@ -142,48 +142,48 @@ class KeywordExtractor:
         return [sentence for sentence, _ in sentence_scores[:num_phrases]]
     
     def extract_quotes(self, text: str) -> List[Dict[str, str]]:
-        """
-        Extract quotes from text using regex patterns.
+    """
+    Extract quotes from text using regex patterns.
+    
+    Args:
+        text: Text to extract quotes from
         
-        Args:
-            text: Text to extract quotes from
-            
-        Returns:
-            List of dictionaries containing quote and context
-        """
-        quotes = []
-        
-        # Pattern untuk kutipan dengan tanda petik ganda
-        pattern_double = r'"([^"]*)"'
-        matches_double = re.findall(pattern_double, text)
-        
-        # Pattern untuk kutipan dengan tanda petik tunggal
-        pattern_single = r''([^']*)'|'([^']*)'|`([^`]*)'
-        matches_single = re.findall(pattern_single, text)
-        
-        # Flatten single quote matches (could be in different groups)
-        flattened_single = []
-        for match in matches_single:
-            for group in match:
-                if group:
-                    flattened_single.append(group)
-        
-        # Combine quotes and filter out short ones (less than 5 words)
-        all_quotes = matches_double + flattened_single
-        filtered_quotes = [q for q in all_quotes if len(q.split()) >= 3]
-        
-        # Extract context for each quote (the sentence containing the quote)
-        for quote in filtered_quotes:
-            quote_pattern = re.escape(quote)
-            for sentence in sent_tokenize(text):
-                if re.search(quote_pattern, sentence):
-                    quotes.append({
-                        "quote": quote,
-                        "context": sentence
-                    })
-                    break
-        
-        return quotes
+    Returns:
+        List of dictionaries containing quote and context
+    """
+    quotes = []
+    
+    # Pattern untuk kutipan dengan tanda petik ganda
+    pattern_double = r'"([^"]*)"'
+    matches_double = re.findall(pattern_double, text)
+    
+    # Pattern untuk kutipan dengan tanda petik tunggal dan backtick
+    pattern_single = r"'([^']*)'|\"([^\"]*)\""
+    matches_single = re.findall(pattern_single, text)
+    
+    # Flatten single quote matches (could be in different groups)
+    flattened_single = []
+    for match in matches_single:
+        for group in match:
+            if group:
+                flattened_single.append(group)
+    
+    # Combine quotes and filter out short ones (less than 3 words)
+    all_quotes = matches_double + flattened_single
+    filtered_quotes = [q for q in all_quotes if len(q.split()) >= 3]
+    
+    # Extract context for each quote (the sentence containing the quote)
+    for quote in filtered_quotes:
+        quote_pattern = re.escape(quote)
+        for sentence in sent_tokenize(text):
+            if re.search(quote_pattern, sentence):
+                quotes.append({
+                    "quote": quote,
+                    "context": sentence
+                })
+                break
+    
+    return quotes
     
     def extract_named_entities(self, text: str) -> Dict[str, List[str]]:
         """
